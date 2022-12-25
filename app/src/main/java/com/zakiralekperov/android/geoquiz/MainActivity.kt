@@ -6,6 +6,7 @@ import android.util.Log
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.activity.viewModels
 import com.google.android.material.snackbar.Snackbar
 import com.zakiralekperov.android.geoquiz.databinding.ActivityMainBinding
 import kotlin.math.abs
@@ -18,6 +19,8 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
 
+    private val quizViewModel: QuizViewModel by viewModels()
+
     private lateinit var trueButton: Button
     private lateinit var falseButton:Button
     private lateinit var nextButton: Button
@@ -25,23 +28,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var questionText: TextView
     private lateinit var mainLayout: LinearLayout
 
-    private val questionBank = listOf(
-        Question(R.string.question_australia, true),
-        Question(R.string.question_oceans, true),
-        Question(R.string.question_mideast, false),
-        Question(R.string.question_africa, false),
-        Question(R.string.question_americas, true),
-        Question(R.string.question_asia, true)
-    )
-    private var currentIndex = 0
-    private var score = 0
-    private var flag = false
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "onCreate(Bundle?) called")
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        Log.d(TAG, "Got a QuizViewModel: $quizViewModel")
 
         trueButton = binding.trueButton
         falseButton = binding.falseButton
@@ -61,29 +53,27 @@ class MainActivity : AppCompatActivity() {
         }
 
         nextButton.setOnClickListener {
-            if ((currentIndex == questionBank.size -1 ) and flag){
+            if ((quizViewModel.currentIndex == quizViewModel.questionBank.size -1 ) and quizViewModel.flag){
                 scoreScreen()
             }
-            currentIndex = (currentIndex + 1) % questionBank.size
+            quizViewModel.moveToNext()
             updateQuestion()
             answerButtonClickable(true)
-            flag = true
+            quizViewModel.flag = true
         }
 
         questionText.setOnClickListener{
-            if ((currentIndex ==questionBank.size -1) and flag){
+            if ((quizViewModel.currentIndex ==quizViewModel.questionBank.size -1) and quizViewModel.flag){
                 scoreScreen()
             }
-            currentIndex = (currentIndex + 1) % questionBank.size
+            quizViewModel.moveToNext()
             updateQuestion()
             answerButtonClickable(true)
-            flag = true
+            quizViewModel.flag = true
         }
 
         prevButton.setOnClickListener{
-            if (currentIndex == 0 )
-                currentIndex = questionBank.size - 1
-            currentIndex = abs( (currentIndex - 1) % questionBank.size)
+            quizViewModel.moveToBack()
             updateQuestion()
             answerButtonClickable(true)
         }
@@ -117,16 +107,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateQuestion(){
-        val questionTextResId = questionBank[currentIndex].textResId
+        val questionTextResId = quizViewModel.currentQuestionText
         binding.questionTextView.setText(questionTextResId)
     }
 
     private  fun checkAnswer(userAnswer: Boolean){
-        val correctAnswer = questionBank[currentIndex].answer
+        val correctAnswer = quizViewModel.currentQuestionAnswer
         val messageResId: Int
         if(userAnswer == correctAnswer){
             messageResId = R.string.correct_toast
-            score +=1
+           quizViewModel.score +=1
         }else{
             messageResId = R.string.incorrect_toast
         }
@@ -140,7 +130,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun scoreScreen(){
-        val string = getString(R.string.your_score) + score.toString()
+        val string = getString(R.string.your_score) + quizViewModel.score.toString()
         Snackbar.make(mainLayout, string, Snackbar.LENGTH_SHORT ).show()
     }
 }
